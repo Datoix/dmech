@@ -4,8 +4,31 @@
 
 ## Run
 
-```bash
+First, set up a virtual environment:
+
+<details>
+<summary><strong>Windows</strong></summary>
+
+```bat
+python -m venv .venv
+.venv\Scripts\activate
 pip install jax scipy numpy matplotlib
+```
+</details>
+
+<details>
+<summary><strong>Linux/macOS</strong></summary>
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install jax scipy numpy matplotlib
+```
+</details>
+
+Then run:
+
+```bash
 python main.py              # spring double pendulum (default)
 python main.py spring_double
 python main.py pendulum     # single rigid rod
