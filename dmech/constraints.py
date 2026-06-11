@@ -39,3 +39,21 @@ class Fixed(Constraint):
 
     def evaluate(self, coords: jnp.ndarray) -> jnp.ndarray:
         return jnp.atleast_1d(coords - self.target)
+
+
+class Distance(Constraint):
+    """Keep two 2-D points separated by a fixed length (rigid rod)."""
+
+    def __init__(self, length: float):
+        super().__init__()
+        self.length = length
+
+    def link(self, entity_a: Entity, entity_b: Entity):
+        self.add_entity(entity_a)
+        self.add_entity(entity_b)
+        self.map_coords(jnp.array([[0, 0], [0, 1], [1, 0], [1, 1]]))
+
+    def evaluate(self, coords: jnp.ndarray) -> jnp.ndarray:
+        x1, y1, x2, y2 = coords[0], coords[1], coords[2], coords[3]
+        dist = jnp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + 1e-8)
+        return jnp.atleast_1d(dist - self.length)

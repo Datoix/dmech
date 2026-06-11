@@ -152,3 +152,130 @@ def animate_spring_pendulum(
         plt.show()
 
     return ani
+
+
+@dataclass
+class RodPendulumView:
+    title: str
+    rod_lengths: tuple[float, ...]
+    gravity: float
+    view_radius: float
+    trail_length: int = 150
+    fps: int = 60
+
+    @classmethod
+    def from_pendulum(cls, config) -> "RodPendulumView":
+        return cls(
+            title=config.title,
+            rod_lengths=(config.rod_length,),
+            gravity=config.gravity,
+            view_radius=config.view_radius,
+        )
+
+    @classmethod
+    def from_double(cls, config) -> "RodPendulumView":
+        return cls(
+            title=config.title,
+            rod_lengths=config.rod_lengths,
+            gravity=config.gravity,
+            view_radius=config.view_radius,
+        )
+
+
+def _rod_constraint_drift(solution: Any, rod_lengths: tuple[float, ...]) -> np.ndarray:
+    pos = solution.y[: len(solution.y) // 2]
+    n_bobs = pos.shape[0] // 2
+    errors = []
+    for i, length in enumerate(rod_lengths):
+        x1, y1 = pos[i * 2], pos[i * 2 + 1]
+        x2, y2 = pos[i * 2 + 2], pos[i * 2 + 3]
+        dist = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+        errors.append(np.abs(dist - length))
+    return np.max(errors, axis=0) if errors else np.zeros(pos.shape[1])
+
+
+def animate_rod_pendulum(
+    solution: Any,
+    t_eval: np.ndarray,
+    view: RodPendulumView,
+    show: bool = True,
+) -> animation.FuncAnimation:
+    """Render a rigid-rod pendulum (1 or 2 rods)."""
+    n_coords = len(solution.y) // 2
+    n_points = n_coords // 2
+    constraint_drift = _rod_constraint_drift(solution, view.rod_lengths)
+    view_r = view.view_radius
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.set_xlim(-view_r, view_r)
+    ax.set_ylim(-view_r, 0.5)
+    ax.set_aspect("equal")
+    ax.grid(True, alpha=0.4)
+    ax.set_title(view.title)
+    ax.plot(0, 0, "ks", markersize=10, zorder=5)
+
+    colors = ["#534ab7", "#0f6e56"]
+    trail_x: List[float] = []
+    trail_y: List[float] = []
+    trail_line, = ax.plot([], [], "-", lw=0.9, color="steelblue", alpha=0.45)
+    rod_line, = ax.plot([], [], "o-", lw=2.5, color="#888480", markersize=10, zorder=3)
+    bob_dots = [
+        ax.plot([], [], "o", markersize=12, color=colors[i % len(colors)], zorder=4)[0]
+        for i in range(1, n_points)
+    ]
+    info_text = ax.text(
+        0.02,
+        0.97,
+        "",
+        transform=ax.transAxes,
+        fontsize=8,
+        va="top",
+        family="monospace",
+        color="#444",
+    )
+
+    def update(frame: int):
+        state = solution.y[:, frame]
+        xs = [state[i] for i in range(0, n_coords, 2)]
+        ys = [state[i] for i in range(1, n_coords, 2)]
+        rod_line.set_data(xs, ys)
+
+        for i, dot in enumerate(bob_dots):
+            dot.set_data([xs[i + 1]], [ys[i + 1]])
+
+        trail_x.append(xs[-1])
+        trail_y.append(ys[-1])
+        if len(trail_x) > view.trail_length:
+            trail_x.pop(0)
+            trail_y.pop(0)
+        trail_line.set_data(trail_x, trail_y)
+
+        if len(view.rod_lengths) == 1:
+            dist = np.sqrt((xs[1] - xs[0]) ** 2 + (ys[1] - ys[0]) ** 2)
+            info_text.set_text(
+                f"L={dist:.3f} m  (target {view.rod_lengths[0]:.2f})\n"
+                f"|C|_max = {constraint_drift[frame]:.2e} m"
+            )
+        else:
+            l1 = np.sqrt((xs[1] - xs[0]) ** 2 + (ys[1] - ys[0]) ** 2)
+            l2 = np.sqrt((xs[2] - xs[1]) ** 2 + (ys[2] - ys[1]) ** 2)
+            info_text.set_text(
+                f"L₁={l1:.3f}  L₂={l2:.3f}  (targets {view.rod_lengths[0]:.2f}, {view.rod_lengths[1]:.2f})\n"
+                f"|C|_max = {constraint_drift[frame]:.2e} m"
+            )
+
+        artists = [rod_line, trail_line, info_text, *bob_dots]
+        return artists
+
+    ani = animation.FuncAnimation(
+        fig,
+        update,
+        frames=len(t_eval),
+        interval=1000 / view.fps,
+        blit=True,
+    )
+
+    if show:
+        plt.show()
+
+    return ani
