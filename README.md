@@ -6,16 +6,20 @@
 
 ```bash
 pip install jax scipy numpy matplotlib
-python main.py
+python main.py              # spring double pendulum (default)
+python main.py spring_double
+python main.py pendulum     # single rigid rod
+python main.py double       # rigid double pendulum
 ```
 
-Default demo: spring double pendulum (`dmech/examples/spring_pendulum.py`).
+Examples live in `dmech/examples/`.
 
 ## Equations
 
 - State: `q` (coords), `q_dot` (velocities), diagonal mass matrix `M`
 - Gravity (y-direction on mass i): `F_gi = -m_i * g`
 - Spring (between a, b): `F_a = k (|b-a| - L0) * (b-a)/|b-a|`, `F_b = -F_a`
+- Rigid rod (between a, b): `|b-a| - L = 0`
 - Constraints: `C(q) = 0`, e.g., fixed pivots
 
 At each step:
@@ -44,4 +48,4 @@ main.py            entry point
 
 ## Note
 
-This repo was built with AI assistance (Cursor). Physics and architecture are mine; the agent handled modularization, boilerplate, and docs.
+This repo was built with AI assistance (Cursor). I set the physics and architecture; the agent wrote most of the code.
