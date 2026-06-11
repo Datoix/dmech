@@ -1,56 +1,29 @@
 import argparse
 
-from dmech.examples.double_pendulum import build_double_pendulum
-from dmech.examples.pendulum import build_pendulum
-from dmech.examples.spring_pendulum import build_spring_pendulum
-from dmech.graphics import (
-    RodPendulumView,
-    SpringPendulumView,
-    animate_rod_pendulum,
-    animate_spring_pendulum,
-)
-from dmech.integrator import integrate_system
+from dmech.examples import double_pendulum, pendulum, spring_pendulum
+from dmech.examples.registry import Example, ExampleRegistry
 
-DEMOS = {
-    "spring": "spring",
-    "spring_double": "spring",
-    "pendulum": "pendulum",
-    "double": "double",
-}
+REGISTRY = ExampleRegistry([
+    Example("spring", spring_pendulum.run, aliases=("spring_double",), default=True),
+    Example("pendulum", pendulum.run),
+    Example("double", double_pendulum.run),
+])
 
 
 def main():
-    parser = argparse.ArgumentParser(description="dmech demo runner")
+    parser = argparse.ArgumentParser(description="dmech example runner")
     parser.add_argument(
-        "demo",
+        "example",
         nargs="?",
-        default="spring",
-        choices=DEMOS,
-        help="which model to run (default: spring)",
+        default=REGISTRY.default_name,
+        choices=REGISTRY.names(),
+        help=f"which example to run (default: {REGISTRY.default_name})",
     )
     args = parser.parse_args()
 
-    demo = DEMOS[args.demo]
-    print(f"Pre-calculating {demo} trajectory with Scipy (RK45)...")
-
-    if demo == "spring":
-        config = build_spring_pendulum()
-        view = SpringPendulumView.from_config(config)
-        solution, t_eval = integrate_system(config.system, fps=view.fps)
-        print("Calculation complete! Playing animation...")
-        animate_spring_pendulum(config.system, solution, t_eval, view)
-    elif demo == "pendulum":
-        config = build_pendulum()
-        view = RodPendulumView.from_pendulum(config)
-        solution, t_eval = integrate_system(config.system, fps=view.fps)
-        print("Calculation complete! Playing animation...")
-        animate_rod_pendulum(solution, t_eval, view)
-    else:
-        config = build_double_pendulum()
-        view = RodPendulumView.from_double(config)
-        solution, t_eval = integrate_system(config.system, fps=view.fps)
-        print("Calculation complete! Playing animation...")
-        animate_rod_pendulum(solution, t_eval, view)
+    example = REGISTRY.get(args.example)
+    print(f"Pre-calculating {example.name} trajectory with Scipy (RK45)...")
+    example.run()
 
 
 if __name__ == "__main__":

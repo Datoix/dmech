@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import jax.numpy as jnp
 
 from dmech import ConstantForce, Entity, Fixed, SpringForce, System
+from dmech.graphics import Animator, ViewSpring
+from dmech.integrator import integrate_system
 
 
 @dataclass
@@ -14,14 +16,11 @@ class SpringPendulumConfig:
     view_radius: float
 
 
-def build_spring_pendulum() -> SpringPendulumConfig:
-    """Build the spring double-pendulum system from main.py."""
+def build() -> SpringPendulumConfig:
     spring_k = 40.0
     rest_length = 1.0
     bob_mass = 2.0
     gravity = 9.81
-
-    # Static equilibrium stretch: spring must support bob weight at rest.
     l_eq = rest_length + bob_mass * gravity / spring_k
 
     pivot = Entity(mass=[1.0, 1.0])
@@ -47,7 +46,6 @@ def build_spring_pendulum() -> SpringPendulumConfig:
 
     system.add_force(SpringForce(pivot, bob1, rest_length=rest_length, stiffness=spring_k))
     system.add_force(SpringForce(bob1, bob2, rest_length=rest_length, stiffness=spring_k))
-
     system.initialize()
 
     return SpringPendulumConfig(
@@ -57,3 +55,11 @@ def build_spring_pendulum() -> SpringPendulumConfig:
         gravity=gravity,
         view_radius=l_eq * 2 + 0.8,
     )
+
+
+def run():
+    config = build()
+    view = ViewSpring.from_config(config)
+    solution, t_eval = integrate_system(config.system, fps=view.fps)
+    print("Calculation complete! Playing animation...")
+    Animator(solution, t_eval, view, system=config.system).run()

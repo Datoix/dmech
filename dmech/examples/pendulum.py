@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import jax.numpy as jnp
 
 from dmech import ConstantForce, Distance, Entity, Fixed, System
+from dmech.graphics import Animator, ViewRod
+from dmech.integrator import integrate_system
 
 
 @dataclass
@@ -15,8 +17,7 @@ class PendulumConfig:
     title: str = "Simple Pendulum"
 
 
-def build_pendulum() -> PendulumConfig:
-    """Single bob on a rigid rod, pinned at the origin."""
+def build() -> PendulumConfig:
     rod_length = 1.0
     bob_mass = 1.5
     gravity = 9.81
@@ -43,7 +44,6 @@ def build_pendulum() -> PendulumConfig:
     system.add_constraint(rod)
 
     system.add_force(ConstantForce(bob, 1, -gravity * bob.mass[0]))
-
     system.initialize()
 
     return PendulumConfig(
@@ -52,3 +52,11 @@ def build_pendulum() -> PendulumConfig:
         gravity=gravity,
         view_radius=rod_length * 1.6,
     )
+
+
+def run():
+    config = build()
+    view = ViewRod.from_config(config)
+    solution, t_eval = integrate_system(config.system, fps=view.fps)
+    print("Calculation complete! Playing animation...")
+    Animator(solution, t_eval, view).run()

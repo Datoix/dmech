@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import jax.numpy as jnp
 
 from dmech import ConstantForce, Distance, Entity, Fixed, System
+from dmech.graphics import Animator, ViewRod
+from dmech.integrator import integrate_system
 
 
 @dataclass
@@ -15,8 +17,7 @@ class DoublePendulumConfig:
     title: str = "Double Pendulum"
 
 
-def build_double_pendulum() -> DoublePendulumConfig:
-    """Two bobs connected by rigid rods (matches _bkp/example.py setup)."""
+def build() -> DoublePendulumConfig:
     l1, l2 = 1.0, 0.9
     m1, m2 = 1.5, 1.0
     gravity = 9.81
@@ -62,3 +63,11 @@ def build_double_pendulum() -> DoublePendulumConfig:
         gravity=gravity,
         view_radius=max(l1 + l2, l1) * 1.2,
     )
+
+
+def run():
+    config = build()
+    view = ViewRod.from_config(config)
+    solution, t_eval = integrate_system(config.system, fps=view.fps)
+    print("Calculation complete! Playing animation...")
+    Animator(solution, t_eval, view).run()
