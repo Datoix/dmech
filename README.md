@@ -41,3 +41,7 @@ dmech/
   examples/        model setups
 main.py            entry point
 ```
+
+## Note
+
+This repo was built with AI assistance (Cursor). Physics and architecture are mine; the agent handled modularization, boilerplate, and docs.
