@@ -57,3 +57,38 @@ class Distance(Constraint):
         x1, y1, x2, y2 = coords[0], coords[1], coords[2], coords[3]
         dist = jnp.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + 1e-8)
         return jnp.atleast_1d(dist - self.length)
+
+
+class GearRatio(Constraint):
+    """External gear mesh: r1*theta1 + r2*theta2 = phase."""
+
+    def __init__(self, r1: float, r2: float, phase: float = 0.0):
+        super().__init__()
+        self.r1 = jnp.float32(r1)
+        self.r2 = jnp.float32(r2)
+        self.phase = jnp.float32(phase)
+
+    def mesh(self, gear_a: Entity, gear_b: Entity):
+        self.add_entity(gear_a)
+        self.add_entity(gear_b)
+        self.map_coords(jnp.array([[0, 0], [1, 0]]))
+
+    def evaluate(self, coords: jnp.ndarray) -> jnp.ndarray:
+        return jnp.atleast_1d(self.r1 * coords[0] + self.r2 * coords[1] - self.phase)
+
+
+class RackPinion(Constraint):
+    """Rolling without slip: x - r*theta = phase."""
+
+    def __init__(self, radius: float, phase: float = 0.0):
+        super().__init__()
+        self.radius = jnp.float32(radius)
+        self.phase = jnp.float32(phase)
+
+    def connect(self, rack: Entity, pinion: Entity):
+        self.add_entity(rack)
+        self.add_entity(pinion)
+        self.map_coords(jnp.array([[0, 0], [1, 0]]))
+
+    def evaluate(self, coords: jnp.ndarray) -> jnp.ndarray:
+        return jnp.atleast_1d(coords[0] - self.radius * coords[1] - self.phase)

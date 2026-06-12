@@ -33,6 +33,9 @@ python main.py              # spring double pendulum (default)
 python main.py spring_double
 python main.py pendulum     # single rigid rod
 python main.py double       # rigid double pendulum
+python main.py gear         # meshed gear pair
+python main.py gear_train   # three-gear train
+python main.py rack         # rack and pinion
 ```
 
 Examples live in `dmech/examples/`.
@@ -43,6 +46,9 @@ Examples live in `dmech/examples/`.
 - Gravity (y-direction on mass i): `F_gi = -m_i * g`
 - Spring (between a, b): `F_a = k (|b-a| - L0) * (b-a)/|b-a|`, `F_b = -F_a`
 - Rigid rod (between a, b): `|b-a| - L = 0`
+- External gear mesh: `r₁θ₁ + r₂θ₂ = φ₀` (opposite rotation at contact)
+- Rack and pinion: `x − rθ = x₀` (rolling without slip)
+- Applied torque (on angle DOF): `Q_θ = τ`
 - Constraints: `C(q) = 0`, e.g., fixed pivots
 
 At each step:

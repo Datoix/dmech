@@ -14,10 +14,12 @@ def integrate_system(
     rtol: float = 1e-7,
     atol: float = 1e-9,
     method: str = "RK45",
+    q_dot0: np.ndarray | None = None,
 ) -> Tuple[Any, np.ndarray]:
     """Integrate a initialized System over [0, t_max] using scipy."""
     n_coords = len(system.coords)
-    y0 = np.concatenate([np.array(system.coords), np.zeros(n_coords)])
+    v0 = np.zeros(n_coords) if q_dot0 is None else np.asarray(q_dot0, dtype=np.float64)
+    y0 = np.concatenate([np.array(system.coords), v0])
     t_eval = np.linspace(0, t_max, int(t_max * fps))
 
     def dynamics(t: float, y: np.ndarray) -> np.ndarray:
