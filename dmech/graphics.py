@@ -10,51 +10,6 @@ from dmech import models
 from dmech.system import System
 
 
-def coil_path(ax_: float, ay_: float, bx_: float, by_: float) -> Tuple[np.ndarray, np.ndarray]:
-    tang = np.array([bx_ - ax_, by_ - ay_])
-    leng = np.linalg.norm(tang) + 1e-10
-    unit_t = tang / leng
-    unit_n = np.array([-unit_t[1], unit_t[0]])
-    pts = []
-    for i, t in enumerate(np.linspace(0.0, 1.0, 22)):
-        base = np.array([ax_, ay_]) + t * tang
-        if 0 < i < 21:
-            base = base + (1 if i % 2 else -1) * 0.09 * unit_n
-        pts.append(base)
-    pts = np.array(pts)
-    return pts[:, 0], pts[:, 1]
-
-
-def gear_outline(
-    cx: float, cy: float, radius: float, angle: float, n_teeth: int = 16,
-) -> Tuple[np.ndarray, np.ndarray]:
-    angles = np.linspace(0.0, 2.0 * np.pi, n_teeth * 2 + 1) + angle
-    radii = np.array([
-        radius * (1.12 if i % 2 else 1.0) for i in range(len(angles))
-    ])
-    xs = cx + radii * np.cos(angles)
-    ys = cy + radii * np.sin(angles)
-    return xs, ys
-
-
-def rack_outline(
-    x: float, y: float, length: float, height: float, n_teeth: int = 10,
-) -> Tuple[np.ndarray, np.ndarray]:
-    half = length / 2.0
-    tooth_w = length / n_teeth
-    pts: List[Tuple[float, float]] = []
-    x0 = x - half
-    for i in range(n_teeth):
-        xi = x0 + i * tooth_w
-        pts.append((xi, y - height / 2))
-        pts.append((xi + tooth_w * 0.5, y - height / 2))
-        pts.append((xi + tooth_w * 0.5, y + height / 2))
-        pts.append((xi + tooth_w, y + height / 2))
-    pts.append((x0 + length, y - height / 2))
-    arr = np.array(pts)
-    return arr[:, 0], arr[:, 1]
-
-
 def positions(state: np.ndarray, n_coords: int) -> Tuple[List[float], List[float]]:
     xs = [float(state[i]) for i in range(0, n_coords, 2)]
     ys = [float(state[i]) for i in range(1, n_coords, 2)]
@@ -72,6 +27,16 @@ def constraint_drift_series(system: System, solution: Any, n_coords: int) -> np.
         c = system._global_constraints(q)
         drifts.append(float(np.max(np.abs(np.array(c)))))
     return np.array(drifts)
+
+
+def gear_outline(cx: float, cy: float, radius: float, angle: float, n_teeth: int = 16) -> Tuple[np.ndarray, np.ndarray]:
+    angles = np.linspace(0.0, 2.0 * np.pi, n_teeth * 2 + 1) + angle
+    radii = np.array([
+        radius * (1.12 if i % 2 else 1.0) for i in range(len(angles))
+    ])
+    xs = cx + radii * np.cos(angles)
+    ys = cy + radii * np.sin(angles)
+    return xs, ys
 
 
 class Trail:
@@ -192,6 +157,21 @@ class SpringView(AnimationView):
         super().__init__(model, solution, system)
         self._energy_drift, self._e0 = self._energy_drift_series()
 
+    @staticmethod
+    def _coil_path(ax_: float, ay_: float, bx_: float, by_: float) -> Tuple[np.ndarray, np.ndarray]:
+        tang = np.array([bx_ - ax_, by_ - ay_])
+        leng = np.linalg.norm(tang) + 1e-10
+        unit_t = tang / leng
+        unit_n = np.array([-unit_t[1], unit_t[0]])
+        pts = []
+        for i, t in enumerate(np.linspace(0.0, 1.0, 22)):
+            base = np.array([ax_, ay_]) + t * tang
+            if 0 < i < 21:
+                base = base + (1 if i % 2 else -1) * 0.09 * unit_n
+            pts.append(base)
+        pts = np.array(pts)
+        return pts[:, 0], pts[:, 1]
+
     def _energy_drift_series(self) -> Tuple[np.ndarray, float]:
         model = self.model
         n = self.n_coords
@@ -232,7 +212,7 @@ class SpringView(AnimationView):
         state = self.solution.y[:, frame]
         xs, ys = positions(state, self.n_coords)
         for i, link in enumerate(self.links):
-            link.set_data(*coil_path(xs[i], ys[i], xs[i + 1], ys[i + 1]))
+            link.set_data(*self._coil_path(xs[i], ys[i], xs[i + 1], ys[i + 1]))
         for i, bob in enumerate(self.bobs):
             bob.set_data([xs[i + 1]], [ys[i + 1]])
         self.trail.track(xs[-1], ys[-1])
@@ -300,6 +280,24 @@ class RackPinionView(AnimationView):
         super().__init__(model, solution, system)
         self._constraint_drift = constraint_drift_series(system, solution, self.n_coords)
 
+    @staticmethod
+    def _rack_outline(
+        x: float, y: float, length: float, height: float, n_teeth: int = 10,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        half = length / 2.0
+        tooth_w = length / n_teeth
+        pts: List[Tuple[float, float]] = []
+        x0 = x - half
+        for i in range(n_teeth):
+            xi = x0 + i * tooth_w
+            pts.append((xi, y - height / 2))
+            pts.append((xi + tooth_w * 0.5, y - height / 2))
+            pts.append((xi + tooth_w * 0.5, y + height / 2))
+            pts.append((xi + tooth_w, y + height / 2))
+        pts.append((x0 + length, y - height / 2))
+        arr = np.array(pts)
+        return arr[:, 0], arr[:, 1]
+
     def setup(self, ax) -> None:
         model = self.model
         r = model.view_radius
@@ -325,7 +323,7 @@ class RackPinionView(AnimationView):
         self.pinion_center_marker.set_data([cx], [cy])
         rack_x = float(state[model.rack.x_index])
         self.rack_artist.set_data(
-            *rack_outline(rack_x, model.rack.y, model.rack.length, model.rack.height),
+            *self._rack_outline(rack_x, model.rack.y, model.rack.length, model.rack.height),
         )
 
         n = self.n_coords
