@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 
 from dmech import ConstantForce, Entity, RackPinion, System
-from dmech.graphics import Animator, RackViewSpec, ViewGear
+from dmech import models
+from dmech.graphics import Animator, RackPinionView
 from dmech.integrator import integrate_system
 
 
 @dataclass
 class RackPinionConfig:
     system: System
-    gear_centers: tuple[tuple[float, float], ...]
-    gear_radii: tuple[float, ...]
-    angle_indices: tuple[int, ...]
-    rack: RackViewSpec
+    pinion_center: tuple[float, float]
+    pinion_radius: float
+    angle_index: int
+    rack: models.RackSpec
     view_radius: float
     title: str = "Rack and Pinion"
 
@@ -39,17 +40,17 @@ def build() -> RackPinionConfig:
 
     return RackPinionConfig(
         system=system,
-        gear_centers=((0.0, radius),),
-        gear_radii=(radius,),
-        angle_indices=(1,),
-        rack=RackViewSpec(y=0.0, length=3.0, height=0.15, x_index=0),
+        pinion_center=(0.0, radius),
+        pinion_radius=radius,
+        angle_index=1,
+        rack=models.RackSpec(y=0.0, length=3.0, height=0.15, x_index=0),
         view_radius=2.0,
     )
 
 
 def run():
     config = build()
-    view = ViewGear.from_config(config)
-    solution, t_eval = integrate_system(config.system, fps=view.fps, t_max=6.0)
+    model = models.RackPinionModel.from_config(config)
+    solution, t_eval = integrate_system(config.system, fps=model.fps, t_max=6.0)
     print("Calculation complete! Playing animation...")
-    Animator(solution, t_eval, view, system=config.system).run()
+    Animator(t_eval, RackPinionView(model, solution, config.system)).run()

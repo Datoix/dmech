@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from dmech import Entity, GearRatio, System
-from dmech.graphics import Animator, ViewGear
+from dmech import models
+from dmech.graphics import Animator, GearView
 from dmech.integrator import integrate_system
 
 
@@ -58,9 +59,9 @@ def build() -> GearTrainConfig:
 
 def run():
     config = build()
-    view = ViewGear.from_config(config)
+    model = models.GearModel.from_config(config)
     solution, t_eval = integrate_system(
-        config.system, fps=view.fps, t_max=6.0, q_dot0=config.q_dot0,
+        config.system, fps=model.fps, t_max=6.0, q_dot0=config.q_dot0,
     )
     print("Calculation complete! Playing animation...")
-    Animator(solution, t_eval, view, system=config.system).run()
+    Animator(t_eval, GearView(model, solution, config.system)).run()

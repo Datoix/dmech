@@ -4,7 +4,8 @@ from dataclasses import dataclass
 import jax.numpy as jnp
 
 from dmech import ConstantForce, Distance, Entity, Fixed, System
-from dmech.graphics import Animator, ViewRod
+from dmech import models
+from dmech.graphics import Animator, RodView
 from dmech.integrator import integrate_system
 
 
@@ -56,7 +57,7 @@ def build() -> PendulumConfig:
 
 def run():
     config = build()
-    view = ViewRod.from_config(config)
-    solution, t_eval = integrate_system(config.system, fps=view.fps)
+    model = models.RodModel.from_config(config)
+    solution, t_eval = integrate_system(config.system, fps=model.fps)
     print("Calculation complete! Playing animation...")
-    Animator(solution, t_eval, view).run()
+    Animator(t_eval, RodView(model, solution)).run()

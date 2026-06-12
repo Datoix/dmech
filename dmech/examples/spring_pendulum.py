@@ -3,7 +3,8 @@ from dataclasses import dataclass
 import jax.numpy as jnp
 
 from dmech import ConstantForce, Entity, Fixed, SpringForce, System
-from dmech.graphics import Animator, ViewSpring
+from dmech import models
+from dmech.graphics import Animator, SpringView
 from dmech.integrator import integrate_system
 
 
@@ -59,7 +60,7 @@ def build() -> SpringPendulumConfig:
 
 def run():
     config = build()
-    view = ViewSpring.from_config(config)
-    solution, t_eval = integrate_system(config.system, fps=view.fps)
+    model = models.SpringModel.from_config(config)
+    solution, t_eval = integrate_system(config.system, fps=model.fps)
     print("Calculation complete! Playing animation...")
-    Animator(solution, t_eval, view, system=config.system).run()
+    Animator(t_eval, SpringView(model, solution, config.system)).run()
